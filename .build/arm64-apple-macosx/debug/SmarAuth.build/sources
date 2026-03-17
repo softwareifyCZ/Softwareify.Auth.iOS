@@ -1,9 +1,0 @@
-/Users/patrikurban/Developer/Smar/iOS/Packages/SmarAuth/Sources/SmarAuth/AuthManager.swift
-/Users/patrikurban/Developer/Smar/iOS/Packages/SmarAuth/Sources/SmarAuth/Keychain/KeychainItemAccessibility.swift
-/Users/patrikurban/Developer/Smar/iOS/Packages/SmarAuth/Sources/SmarAuth/Keychain/KeychainWrapper.swift
-/Users/patrikurban/Developer/Smar/iOS/Packages/SmarAuth/Sources/SmarAuth/Keychain/SecureStorage.swift
-/Users/patrikurban/Developer/Smar/iOS/Packages/SmarAuth/Sources/SmarAuth/Models/AuthError.swift
-/Users/patrikurban/Developer/Smar/iOS/Packages/SmarAuth/Sources/SmarAuth/Models/TokenResponse.swift
-/Users/patrikurban/Developer/Smar/iOS/Packages/SmarAuth/Sources/SmarAuth/Models/UserInfo.swift
-/Users/patrikurban/Developer/Smar/iOS/Packages/SmarAuth/Sources/SmarAuth/OIDCConfiguration.swift
-/Users/patrikurban/Developer/Smar/iOS/Packages/SmarAuth/Sources/SmarAuth/PKCEHelper.swift
