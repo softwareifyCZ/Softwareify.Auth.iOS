@@ -3,20 +3,21 @@
 import PackageDescription
 
 let package = Package(
-    name: "SmarAuth",
+    name: "SoftwareifyAuth",
     platforms: [
         .iOS(.v16),
         .macOS(.v13)
     ],
     products: [
         .library(
-            name: "SmarAuth",
-            targets: ["SmarAuth"]
+            name: "SoftwareifyAuth",
+            targets: ["SoftwareifyAuth"]
         ),
     ],
     targets: [
         .target(
-            name: "SmarAuth"
+            name: "SoftwareifyAuth",
+            path: "Sources/SoftwareifyAuth"
         ),
     ]
 )
