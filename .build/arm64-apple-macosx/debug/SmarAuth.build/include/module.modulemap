@@ -1,0 +1,3 @@
+module SmarAuth {
+    header "/Users/patrikurban/Developer/Smar/iOS/Packages/SmarAuth/.build/arm64-apple-macosx/debug/SmarAuth.build/include/SmarAuth-Swift.h"
+}
