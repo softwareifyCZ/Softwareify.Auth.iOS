@@ -55,7 +55,7 @@ public final class AuthManager: @unchecked Sendable {
         guard let challenge = PKCEHelper.generateCodeChallenge(from: verifier) else { return nil }
 
         var components = URLComponents(string: "\(configuration.baseURL)/connect/authorize")
-        components?.queryItems = [
+        var queryItems = [
             URLQueryItem(name: "client_id", value: configuration.clientId),
             URLQueryItem(name: "code_challenge", value: challenge),
             URLQueryItem(name: "response_type", value: "code"),
@@ -63,6 +63,10 @@ public final class AuthManager: @unchecked Sendable {
             URLQueryItem(name: "code_challenge_method", value: "S256"),
             URLQueryItem(name: "redirect_uri", value: configuration.redirectURI),
         ]
+        if let resource = configuration.resource {
+            queryItems.append(URLQueryItem(name: "resource", value: resource))
+        }
+        components?.queryItems = queryItems
 
         guard let url = components?.url else { return nil }
         return (url, verifier)
@@ -115,6 +119,15 @@ public final class AuthManager: @unchecked Sendable {
     // MARK: - Authenticated Request
 
     /// Performs a URL request with automatic token refresh on 401.
+    ///
+    /// Flow:
+    /// 1. Injects current access token and performs the request.
+    /// 2. On 401 → refreshes the access token using the refresh token.
+    /// 3. Retries the original request once with the new token.
+    /// 4. Throws `AuthError.refreshFailed` only when the refresh token itself
+    ///    is invalid/revoked (user must re-authenticate).
+    /// 5. Throws `AuthError.networkError` for transient failures so the caller
+    ///    can retry without forcing a sign-out.
     public func authenticatedRequest<T: Decodable>(_ request: URLRequest) async throws -> T {
         var req = request
         if let token = storage.get(StorageKey.accessToken) {
@@ -124,7 +137,7 @@ public final class AuthManager: @unchecked Sendable {
         do {
             return try await performRequest(req)
         } catch AuthError.tokenExpired {
-            // Try refreshing the token once
+            // Access token expired — attempt refresh
             try await refreshAccessToken()
 
             // Retry with new token
@@ -140,13 +153,17 @@ public final class AuthManager: @unchecked Sendable {
 
     private func exchangeCodeForToken(code: String, codeVerifier: String) async throws -> TokenResponse {
         var bodyComponents = URLComponents()
-        bodyComponents.queryItems = [
+        var queryItems = [
             URLQueryItem(name: "grant_type", value: "authorization_code"),
             URLQueryItem(name: "client_id", value: configuration.clientId),
             URLQueryItem(name: "code", value: code),
             URLQueryItem(name: "code_verifier", value: codeVerifier),
             URLQueryItem(name: "redirect_uri", value: configuration.redirectURI),
         ]
+        if let resource = configuration.resource {
+            queryItems.append(URLQueryItem(name: "resource", value: resource))
+        }
+        bodyComponents.queryItems = queryItems
 
         var request = URLRequest(url: URL(string: "\(configuration.baseURL)/connect/token")!)
         request.httpMethod = "POST"
@@ -158,7 +175,7 @@ public final class AuthManager: @unchecked Sendable {
 
     private func refreshAccessToken() async throws {
         guard let refreshToken = storage.get(StorageKey.refreshToken) else {
-            throw AuthError.tokenExpired
+            throw AuthError.refreshFailed
         }
 
         var bodyComponents = URLComponents()
@@ -168,14 +185,44 @@ public final class AuthManager: @unchecked Sendable {
             URLQueryItem(name: "refresh_token", value: refreshToken),
         ]
 
-        var request = URLRequest(url: URL(string: "\(configuration.baseURL)/connect/token")!)
+        guard let url = URL(string: "\(configuration.baseURL)/connect/token") else {
+            throw AuthError.invalidResponse
+        }
+
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.httpBody = bodyComponents.query?.data(using: .utf8)
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
 
-        let response: TokenResponse = try await performRequest(request)
-        storage.set(response.accessToken, forKey: StorageKey.accessToken)
-        storage.set(response.refreshToken, forKey: StorageKey.refreshToken)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            // Network failure — don't treat as "refresh token invalid"
+            throw AuthError.networkError
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AuthError.networkError
+        }
+
+        // 400/401 from the token endpoint means the refresh token is invalid/revoked
+        if httpResponse.statusCode == 400 || httpResponse.statusCode == 401 {
+            throw AuthError.refreshFailed
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            // 5xx or other server error — transient, don't force sign-out
+            throw AuthError.networkError
+        }
+
+        do {
+            let tokenResponse = try JSONDecoder().decode(TokenResponse.self, from: data)
+            storage.set(tokenResponse.accessToken, forKey: StorageKey.accessToken)
+            storage.set(tokenResponse.refreshToken, forKey: StorageKey.refreshToken)
+        } catch {
+            throw AuthError.decodingFailed
+        }
     }
 
     private func performRequest<T: Decodable>(_ request: URLRequest) async throws -> T {
