@@ -23,7 +23,7 @@ public final class AuthManager: @unchecked Sendable {
 
     // MARK: - Properties
 
-    public let configuration: OIDCConfiguration
+    public private(set) var configuration: OIDCConfiguration
     private let storage = SecureStorage.shared
     private let session: URLSession
 
@@ -44,6 +44,20 @@ public final class AuthManager: @unchecked Sendable {
     public init(configuration: OIDCConfiguration, session: URLSession = .shared) {
         self.configuration = configuration
         self.session = session
+    }
+
+    /// Replaces the auth server's base URL in place, keeping every other
+    /// field (client ID, redirect URI, scopes, resource) unchanged. Existing
+    /// holders of this `AuthManager` instance observe the change immediately
+    /// since it's the same object.
+    public func updateBaseURL(_ baseURL: String) {
+        configuration = OIDCConfiguration(
+            baseURL: baseURL,
+            clientId: configuration.clientId,
+            redirectURI: configuration.redirectURI,
+            scopes: configuration.scopes,
+            resource: configuration.resource
+        )
     }
 
     // MARK: - PKCE Authorization URL
