@@ -19,5 +19,10 @@ let package = Package(
             name: "SoftwareifyAuth",
             path: "Sources/SoftwareifyAuth"
         ),
+        .testTarget(
+            name: "SoftwareifyAuthTests",
+            dependencies: ["SoftwareifyAuth"],
+            path: "Tests/SoftwareifyAuthTests"
+        ),
     ]
 )

@@ -16,9 +16,9 @@ public final class AuthManager: @unchecked Sendable {
     // MARK: - Storage keys
 
     private enum StorageKey {
-        static let accessToken = "smar-auth-access-token"
-        static let refreshToken = "smar-auth-refresh-token"
-        static let userEmail = "smar-auth-user-email"
+        static let accessToken = "softwareify-auth-access-token"
+        static let refreshToken = "softwareify-auth-refresh-token"
+        static let userEmail = "softwareify-auth-user-email"
     }
 
     // MARK: - Properties
