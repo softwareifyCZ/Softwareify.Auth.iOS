@@ -3,7 +3,7 @@
 Swift Package Manager library for OIDC / PKCE authentication (`SoftwareifyAuth`).
 
 **Consume via:** Swift Package Manager (GitHub + semver tags)  
-**Repo:** https://github.com/softwareifyCZ/Softwareify.Auth.iOS
+**Repo:** https://github.com/softwareifyCZ/Softwareify.Auth.iOS (public — no PAT required to resolve)
 
 ## Development & Release
 
